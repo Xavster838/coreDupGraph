@@ -1,61 +1,56 @@
-import os
+#import stuff
 import sys
-import math
-from snakemake.utils import min_version
-
-min_version("6.0")
-
-SDIR = os.path.realpath(os.path.dirname(srcdir("Snakefile")))
-shell.prefix(f"set -eo pipefail;")
-
-
-report: "report/workflow.rst"
-
-
-configfile: "config/config.yaml"
-
-
-TEMP_DIR = config.pop("tempdir", "temp")
-if TEMP_DIR != "temp":
-    if os.path.exists("temp"):
-        if os.path.islink("temp") and os.path.realpath("temp") == os.path.realpath(
-            TEMP_DIR
-        ):
-            print("The temp dir has already been linked.")
-        else:
-            sys.exit("temp/ already in use, please move it before running.")
-    else:
-        shell("ln -s {TEMP_DIR} temp")
+import os
 
 
 rule all:
     input:
-        [],
 
 
-rule RepeatMasker:
+rule cluster_graph:
+'''Cluster corDup graph into putative paralogs across sample pop.'''
     input:
-        fasta="a.fasta",
+      #TO DO: figure out if I need to take file or if I can work with something already loaded in environment
     output:
-        out="a.out",
-    resources:
-        mem=config.get("mem", 8),
-    threads: config.get("threads", 8)
-    conda:
-        "envs/env.yml"
-    log:
-        "rm.out.log",
-    params:
-        opts=config.get("RepeatMaskerOptions", "-s -xsamll -e ncbi"),
-        species=config.get("RepeatMaskerSpecies", "human"),
+    run:
+
+rule make_graph:
+'''generate graph using core dup relations.'''
+    input:
+      targ_bed_relations = expand("graph_targ_query_relations/{targ}_{query}_{coreDup}.bed", 
+        targ = get_targ_query_pairs['targets'],
+        query = get_targ_query_pairs['query'], 
+        coreDup = config.coreDup )
+    output:
+      graph_file = #TO DO : figure out graph file format to use.
+    run:
+
+rule get_targ_query_coreDup_relations:
+'''process paf to assign alignment scores between query and target coreDups'''
+    input:
+        targ_coreDup_bed = get_bed_path("target") ,
+        query_coreDup_bed = get_bed_path("query")
+    output:
+        graph_tab = "graph_targ_query_relations/{targ}_{query}_{coreDup}.bed"
+# rule filter_alignments:
+# '''process alignments so only dealing with informative alignments'''
+#     input:
+#     output:
+
+rule align_samples:
+'''generate paf between target and query haplotypes'''
+    input:
+      targ_fa = get_fasta_path("target"),
+      query_fa = get_fasta_path("query")
+    output:
+      paf = "{targ}_{query}.paf"
     shell:
-        """
-        RepeatMasker \
-            -s \
-            -xsmall \
-            -e ncbi \
-            -species {params.species} \
-            -dir $(dirname {input.fasta}) \
-            -pa {threads} \
-            {input.fasta}  2> {log}
-        """
+
+rule annotate_coreDup:
+'''identify core duplicons in each haplotype.'''
+    input:
+      hap_asm_fa = get_hap_name,
+      core_dup_fa = config.coreDup_seq
+    output:
+      core_bed = "coreDup_beds/{sm}_{h}_{coreDup}_annotation.bed"
+    shell: #run minimap and get bed file
