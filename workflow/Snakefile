@@ -1,11 +1,14 @@
 #import stuff
 import sys
 import os
+import pandas as pd
 
+manifest_df = pd.read_csv(config.manifest, sep = '\t')
+manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False)
 
 rule all:
     input:
-      corDup_annot = expand("{sm}_{h}_{coreDup}_cluster_annotation.bed", query = config.samples)
+      corDup_annot = expand("{sm}_{h}_{coreDup}_cluster_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
 
 rule annotate_cores:
 '''given clustered graph and haplotype of interest, annotate each core duplicon by graph clustering.'''
