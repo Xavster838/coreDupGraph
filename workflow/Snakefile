@@ -5,7 +5,15 @@ import os
 
 rule all:
     input:
+      corDup_annot = expand("{sm}_{h}_{coreDup}_cluster_annotation.bed", query = config.samples)
 
+rule annotate_cores:
+'''given clustered graph and haplotype of interest, annotate each core duplicon by graph clustering.'''
+    input:
+      hap_bed = rules.annotate_coreDup.output.core_bed
+      graph = rules.cluster_graph.output.clustered_graph
+    output:
+      annotated_bed = "{sm}_{h}_{coreDup}_cluster_annotation.bed"
 
 rule cluster_graph:
 '''Cluster corDup graph into putative paralogs across sample pop.'''
