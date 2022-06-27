@@ -9,19 +9,23 @@ shell.prefix(f"source {SDIR}/env.cfg ; set -eo pipefail; ")
 #workdir: "dup_denebulatizer_output"
 
 rgns = config.keys()
-manifest_df = pd.read_csv(config.manifest, sep = '\t')
-manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False)
-
 
 wildcard_constraints:
-  sm="|".join( set(manifest_df['sample']) ),
-  h="|".join(set(manifest_df['hap'])),
-  r="|".join(rgns),
-  targ = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) ),
-  query = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) )
+   r="|".join(rgns),
+#  sm="|".join( set(manifest_df['sample']) ),
+#  h="|".join(set(manifest_df['hap'])),
+#  targ = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) ),
+#  query = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) )
+
+def get_manifest_df(wc):
+    '''given rgn, return pandas df of manifest of that given sample.'''
+    manifest_df = pd.read_csv(config[wc.r]['manifest'], sep = '\t')
+    manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False)
+    return manifest_df
 
 def get_hap_fasta(wc):
     '''given sm and h wildcards, return fasta from manifest of sample hap.'''
+    manifest_df = get_manifest_df(wc)
     return manifest_df.loc[wc.sm, wc.h]['fasta']
 
 rule all:
