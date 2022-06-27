@@ -20,6 +20,10 @@ wildcard_constraints:
   targ = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) ),
   query = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) )
 
+def get_hap_fasta(wc):
+    '''given sm and h wildcards, return fasta from manifest of sample hap.'''
+    return manifest_df.loc[wc.sm, wc.h]['fasta']
+
 rule all:
     input:
       corDup_annot = expand("{sm}_{h}_{r}_cluster_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
@@ -74,8 +78,10 @@ rule align_samples:
 rule annotate_coreDup:
 '''identify core duplicons in each haplotype.'''
     input:
-      hap_asm_fa = get_hap_name,
+      hap_asm_fa = get_hap_fasta,
       core_dup_fa = config.coreDup_seq
     output:
       core_bed = "coreDup_beds/{sm}_{h}_{r}_annotation.bed"
-    shell: #run minimap and get bed file
+    shell:'''
+    touch {output.core_bed}
+    '''
