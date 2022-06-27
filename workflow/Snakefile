@@ -3,12 +3,26 @@ import sys
 import os
 import pandas as pd
 
+SDIR=os.path.realpath(os.path.dirname(srcdir("env.cfg"))+"/..")
+shell.prefix(f"source {SDIR}/env.cfg ; set -eo pipefail; ")
+
+workdir: "dup_denebulatizer_output"
+
+rgns = config.keys()
 manifest_df = pd.read_csv(config.manifest, sep = '\t')
 manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False)
 
+
+wildcard_constraints:
+  sm="|".join( set(manifest_df['sample']) ),
+  h="|".join(set(manifest_df['hap'])),
+  r="|".join(rgns),
+  targ = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) ),
+  query = "|".join( expand("{sample}_{hap}", sample = manifest_df['sample'], hap = manifest_df['hap'] ) )
+
 rule all:
     input:
-      corDup_annot = expand("{sm}_{h}_{coreDup}_cluster_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
+      corDup_annot = expand("{sm}_{h}_{r}_cluster_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
 
 rule annotate_cores:
 '''given clustered graph and haplotype of interest, annotate each core duplicon by graph clustering.'''
@@ -16,7 +30,7 @@ rule annotate_cores:
       hap_bed = rules.annotate_coreDup.output.core_bed
       graph = rules.cluster_graph.output.clustered_graph
     output:
-      annotated_bed = "{sm}_{h}_{coreDup}_cluster_annotation.bed"
+      annotated_bed = "{sm}_{h}_{r}_cluster_annotation.bed"
 
 rule cluster_graph:
 '''Cluster corDup graph into putative paralogs across sample pop.'''
@@ -28,7 +42,7 @@ rule cluster_graph:
 rule make_graph:
 '''generate graph using core dup relations.'''
     input:
-      targ_bed_relations = expand("graph_targ_query_relations/{targ}_{query}_{coreDup}.bed", 
+      targ_bed_relations = expand("graph_targ_query_relations/{targ}_{query}_{r}.bed", 
         targ = get_targ_query_pairs['targets'],
         query = get_targ_query_pairs['query'], 
         coreDup = config.coreDup )
@@ -42,7 +56,7 @@ rule get_targ_query_coreDup_relations:
         targ_coreDup_bed = get_bed_path("target") ,
         query_coreDup_bed = get_bed_path("query")
     output:
-        graph_tab = "graph_targ_query_relations/{targ}_{query}_{coreDup}.bed"
+        graph_tab = "graph_targ_query_relations/{targ}_{query}_{r}.bed"
 # rule filter_alignments:
 # '''process alignments so only dealing with informative alignments'''
 #     input:
@@ -54,7 +68,7 @@ rule align_samples:
       targ_fa = get_fasta_path("target"),
       query_fa = get_fasta_path("query")
     output:
-      paf = "{targ}_{query}.paf"
+      paf = "{targ}_{query}_{r}.paf"
     shell:
 
 rule annotate_coreDup:
@@ -63,5 +77,5 @@ rule annotate_coreDup:
       hap_asm_fa = get_hap_name,
       core_dup_fa = config.coreDup_seq
     output:
-      core_bed = "coreDup_beds/{sm}_{h}_{coreDup}_annotation.bed"
+      core_bed = "coreDup_beds/{sm}_{h}_{r}_annotation.bed"
     shell: #run minimap and get bed file
