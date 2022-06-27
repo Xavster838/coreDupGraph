@@ -6,7 +6,7 @@ import pandas as pd
 SDIR=os.path.realpath(os.path.dirname(srcdir("env.cfg"))+"/..")
 shell.prefix(f"source {SDIR}/env.cfg ; set -eo pipefail; ")
 
-workdir: "dup_denebulatizer_output"
+#workdir: "dup_denebulatizer_output"
 
 rgns = config.keys()
 manifest_df = pd.read_csv(config.manifest, sep = '\t')
