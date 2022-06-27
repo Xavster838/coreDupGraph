@@ -88,9 +88,13 @@ rule annotate_coreDup:
     '''identify core duplicons in each haplotype.'''
     input:
       hap_asm_fa = get_hap_fasta,
-      core_dup_fa = get_rgn_fasta 
+      locus_fa = get_rgn_fasta 
     output:
       core_bed = "coreDup_beds/{sm}_{h}_{r}_annotation.bed"
+    conda:
+        "envs/align.yaml"
     shell:'''
-    touch {output.core_bed}
-    '''
+minimap2 -ax asm20 --secondary=yes -p 0.3 -N 10000 --eqx -r 500 -K 500M {input.hap_asm_fa} {input.locus_fa} | \
+    samtools view -b - | samtools sort | \
+    bedtools bamtobed -i - > {output.core_bed} || touch {output.core_bed}    
+'''
