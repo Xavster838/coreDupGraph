@@ -5,3 +5,4 @@ logs/**
 .snakemake/**
 **.code-workspace
 coreDup_beds*
+coreDupGraph_envs*
