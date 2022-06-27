@@ -28,62 +28,67 @@ def get_hap_fasta(wc):
     manifest_df = get_manifest_df(wc)
     return manifest_df.loc[wc.sm, wc.h]['fasta']
 
-rule all:
-    input:
-      corDup_annot = expand("{sm}_{h}_{r}_cluster_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
+def get_rgn_fasta(wc):
+    '''given rgn, return sequence fasta of locus'''
+    return config[wc.r]['locus_fasta']
 
-rule annotate_cores:
-'''given clustered graph and haplotype of interest, annotate each core duplicon by graph clustering.'''
-    input:
-      hap_bed = rules.annotate_coreDup.output.core_bed
-      graph = rules.cluster_graph.output.clustered_graph
-    output:
-      annotated_bed = "{sm}_{h}_{r}_cluster_annotation.bed"
+#rule all:
+#    input:
+#      corDup_annot = expand("{sm}_{h}_{r}_cluster_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
+#
+#rule annotate_cores:
+#   '''given clustered graph and haplotype of interest, annotate each core duplicon by graph clustering.'''
+#    input:
+#      hap_bed = rules.annotate_coreDup.output.core_bed,
+#      graph = rules.cluster_graph.output.clustered_graph
+#    output:
+#      annotated_bed = "{sm}_{h}_{r}_cluster_annotation.bed"
 
-rule cluster_graph:
-'''Cluster corDup graph into putative paralogs across sample pop.'''
-    input:
-      #TO DO: figure out if I need to take file or if I can work with something already loaded in environment
-    output:
-    run:
+#rule cluster_graph:
+#    '''Cluster corDup graph into putative paralogs across sample pop.'''
+#    input:
+#      #TO DO: figure out if I need to take file or if I can work with something already loaded in environment
+#    output:
+#    run:
 
-rule make_graph:
-'''generate graph using core dup relations.'''
-    input:
-      targ_bed_relations = expand("graph_targ_query_relations/{targ}_{query}_{r}.bed", 
-        targ = get_targ_query_pairs['targets'],
-        query = get_targ_query_pairs['query'], 
-        coreDup = config.coreDup )
-    output:
-      graph_file = #TO DO : figure out graph file format to use.
-    run:
+#rule make_graph:
+#    '''generate graph using core dup relations.'''
+#    input:
+#      targ_bed_relations = expand("graph_targ_query_relations/{targ}_{query}_{r}.bed", 
+#      targ = get_targ_query_pairs['targets'],
+#      query = get_targ_query_pairs['query'], 
+#      coreDup = config.coreDup )
+#    output:
+#      graph_file = #TO DO : figure out graph file format to use.
+#    run:
 
-rule get_targ_query_coreDup_relations:
-'''process paf to assign alignment scores between query and target coreDups'''
-    input:
-        targ_coreDup_bed = get_bed_path("target") ,
-        query_coreDup_bed = get_bed_path("query")
-    output:
-        graph_tab = "graph_targ_query_relations/{targ}_{query}_{r}.bed"
+#rule get_targ_query_coreDup_relations:
+#    '''process paf to assign alignment scores between query and target coreDups'''
+#    input:
+#        targ_coreDup_bed = get_bed_path("target") ,
+#        query_coreDup_bed = get_bed_path("query")
+#    output:
+#        graph_tab = "graph_targ_query_relations/{targ}_{query}_{r}.bed"
+
 # rule filter_alignments:
 # '''process alignments so only dealing with informative alignments'''
 #     input:
 #     output:
 
-rule align_samples:
-'''generate paf between target and query haplotypes'''
-    input:
-      targ_fa = get_fasta_path("target"),
-      query_fa = get_fasta_path("query")
-    output:
-      paf = "{targ}_{query}_{r}.paf"
-    shell:
+#rule align_samples:
+#    '''generate paf between target and query haplotypes'''
+#    input:
+#      targ_fa = get_fasta_path("target"),
+#      query_fa = get_fasta_path("query")
+#    output:
+#      paf = "{targ}_{query}_{r}.paf"
+#    shell:
 
 rule annotate_coreDup:
-'''identify core duplicons in each haplotype.'''
+    '''identify core duplicons in each haplotype.'''
     input:
       hap_asm_fa = get_hap_fasta,
-      core_dup_fa = config.coreDup_seq
+      core_dup_fa = get_rgn_fasta 
     output:
       core_bed = "coreDup_beds/{sm}_{h}_{r}_annotation.bed"
     shell:'''
