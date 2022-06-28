@@ -103,12 +103,15 @@ minimap2 -ax asm20 --secondary=yes -p 0.3 -N 10000 --eqx -r 500 -K 500M {input.h
 rule _rename_combine_fastas:
     '''rename sample contigs to only contain: sample_hap_tig1,2,... and merge to single combined fasta'''
     output:
-      old_new_name_map = "tigName_maps/{r}_tig_name_changes"
-      cat_fa = "combined_fa/{r}_combined.fa"
+      old_new_name_map = "tigName_maps/{r}_tig_name_changes" ,
+      cat_fa = "combined_fa/{r}_combined.fa" ,
+      temp_fa = temp("temp_{r}.fa")
+    params:
+      manifest_df = get_manifest_df
     run:
         name_change_df = pd.DataFrame(columns = ['original_fasta', 'original_name', 'new_name'])
         #iterate over each sample row
-        for i, row in manifest_df.iterrows():
+        for i, row in params.manifest_df.iterrows():
             cur_fasta , cur_samp, cur_hap = row['fasta'], row['sample'], row['hap']
             with open( cur_fasta ) as original_file: #change names, cat to combined file
                 cur_name_change_df = pd.DataFrame(columns = ['original_fasta', 'original_name', 'new_name'])
@@ -117,8 +120,8 @@ rule _rename_combine_fastas:
                     cur_name_change_df.loc[i] = [cur_fasta, seq.id, f"{cur_samp}__{cur_hap}__{i}"]
                     seq.id = cur_name_change_df.loc[i, "new_name"]
                     seq.description = "" #description added to end of header. was old name previously.
-                with open("temp.fasta", "w") as output_handle:
+                with open(output.temp_fa, "w") as output_handle:
                     SeqIO.write(records, output_handle, "fasta")
-                os.system(f"cat temp.fasta >> {output.cat_fa}")
+                os.system(f"cat {output.temp_fa} >> {output.cat_fa}")
             name_change_df = name_change_df.append(cur_name_change_df) #include name change in map file.
         name_change_df.to_csv(output.old_new_name_map, sep='\t' , header = True, index = False) 
