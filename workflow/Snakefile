@@ -79,17 +79,17 @@ def get_rgn_fasta(wc):
 rule align_samples:
    '''generate paf between target and query haplotypes'''
     input:
-      combined_fa = rules._rename_combine_fastas.output.cat_fa
+      combined_fa = "combined_fa/{r}_combined.fa" #rules._rename_combine_fastas.output.cat_fa
     output:
-      paf = "{targ}_{query}_{r}.paf"
-    conda:
-      "envs/align.yaml"
+      paf = "{r}_all_vs_all.paf"
     threads: 16
     resources:
       mem_gb=4,
       hrs=4
+    conda:
+      "envs/align.yaml"
     shell:'''
-minimap2 -x asm10 -X -t --secondary=yes -p 0.3 -N 10000 --eqx -r 500 -K 500M {resources.threads} {input.combined_fa} {input.combined_fa} > {output.paf}
+minimap2 -x asm10 -X -t {threads} --secondary=yes -p 0.3 -N 10000 --eqx -r 500 -K 500M {input.combined_fa} {input.combined_fa} > {output.paf}
 '''
 
 rule annotate_coreDup:
