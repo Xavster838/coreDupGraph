@@ -99,12 +99,13 @@ rule annotate_coreDup:
       locus_fa = get_rgn_fasta 
     output:
       core_bed = "coreDup_beds/{sm}_{h}_{r}_annotation.bed"
+    threads: 8
+    params:
+      min_aln_len=3342 #3/4ths length CYP2D6...to change
     conda:
         "envs/align.yaml"
     shell:'''
-minimap2 -ax asm20 --secondary=yes -p 0.3 -N 10000 --eqx -r 500 -K 500M {input.hap_asm_fa} {input.locus_fa} | \
-    samtools view -b - | samtools sort | \
-    bedtools bamtobed -i - > {output.core_bed} || touch {output.core_bed}    
+minimap2 -x asm20 -P -t {threads} -c --eqx -m 100 -r 500 -K 500M {input.locus_fa} {input.hap_asm_fa} | rb filter -a {params.min_aln_len} | cut -f 1,3,4 > {output.core_bed} 
 '''
 
 rule _rename_combine_fastas:
