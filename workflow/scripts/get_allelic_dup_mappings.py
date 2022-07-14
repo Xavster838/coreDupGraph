@@ -4,7 +4,9 @@ process sam file reads. output relation between sample core duplicons.
 import pysam
 import numpy as np
 import pandas as pd 
+import os
 
+pd.options.mode.chained_assignment = None  # default='warn'
 
 bam_path= 
 core_dup_path=
