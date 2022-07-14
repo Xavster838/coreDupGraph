@@ -34,7 +34,6 @@ def get_q_map(seg , ref_coord):
     conQuery=       [M, I, S, E, X] # these ones "consume" the query
     conAln  =       [M, I, D, N, S, E, X] # these ones "consume" the alignments
     ####________________
-
     r_loc = seg.reference_start
     q_step = 0  #how far query coordinate will be from query start
     for opt, l in seg.cigartuples:
@@ -46,7 +45,8 @@ def get_q_map(seg , ref_coord):
         if(r_loc == ref_coord):
             q_coord = seg.qend - q_step if seg.is_reverse else seg.qstart + q_step
             return q_coord
-    raise Exception(f"Got to end of cigar tuple without reaching ref_coordinate {seg.reference} : {ref_coord}")
+    assert r_loc <= ref_coord , f"problem with arighmetic. r_loc larger than ref_coord : {r_loc} , {ref_coord}"
+    raise Exception(f"Got to end of cigar tuple without reaching ref_coordinate {seg.reference_name} : {ref_coord}")
 
 def get_dup(dup_bed_df , coord_start , coord_end):
     '''identify bed duplicon coordinates corresponding to a given start and end, or return -1
