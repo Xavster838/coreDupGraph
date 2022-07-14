@@ -48,17 +48,22 @@ def get_q_map(seg , ref_coord):
     assert r_loc <= ref_coord , f"problem with arighmetic. r_loc larger than ref_coord : {r_loc} , {ref_coord}"
     raise Exception(f"Got to end of cigar tuple without reaching ref_coordinate {seg.reference_name} : {ref_coord}")
 
-def get_dup(dup_bed_df , coord_start , coord_end):
-    '''identify bed duplicon coordinates corresponding to a given start and end, or return -1
+def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
+    '''identify bed duplicon coordinates corresponding to a given start and end, or return None
     @output: subset of dup_bed_df for core dups corresponding to the region of interest
+    @input: is_seg: if giving coordinates of the alignment boudaries of a segment, need to adjust dup bed to not go beyond alignment.
     '''
+    assert coord_start <= coord_end , f"coordinates wrong: start > end. coord_start: {coord_start} ; coord_end : {coord_end}"
     coords = pd.Interval( coord_start , coord_end )
     bed_intervals = [pd.Interval(x,y, 'both') for x,y in dup_bed_df.loc[:, ["start", "stop"]].values ]
     overlaps =  [coords.overlaps(x) for x in bed_intervals]
     if any(overlaps):
-        overlaps = np.where( [coords.overlaps(x) for x in bed_intervals] )[0].tolist()
-        return dup_bed_df.loc[overlaps , :]
-    return -1
+        sub_bed = dup_bed_df.loc[overlaps , :]
+        if(is_seg):
+            sub_bed['start'] = sub_bed['start'].map(lambda x: max(x, seg.reference_start) )
+            sub_bed['stop'] = sub_bed['stop'].map(lambda x: min(x, seg.reference_end) )
+        return sub_bed
+    return None
 
 def get_score(seg):
     return [tag[1] for tag in seg.get_tags() if tag[0] == 'AS'][0]
