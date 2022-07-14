@@ -81,22 +81,34 @@ def get_dup_bed_df(samp, hap , file_path_sep = "_"):
 
 def process_segment(seg ):
     '''for each segment, identify reference query coreDup annotations.'''
-    nested_dups = get_dup(ref_dup_bed_df , seg.reference_start, seg.reference_end)
+    ref_samp, ref_hap = seg.reference_name.split("__")[0] , seg.reference_name.split("__")[1]
+    ref_dup_bed_df = get_dup_bed_df( ref_samp,  ref_hap, file_path_sep = "_" )
+    assert ref_dup_bed_df is not None , f"Couldn't find reference locus bed: {ref_samp} , {ref_hap} in {locus_bed_dir }. Check file_path_sep char."
+    nested_dups = get_dup(ref_dup_bed_df , seg.reference_start, seg.reference_end, is_seg = True)
+    if(nested_dups is None):
+        return None
+    aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score' ])
     for i, row in nested_dups.iterrows():
-        q_1 = get_q_map(seg, row.start)
-        q_2 = get_q_map(seg, row.stop)
-        q_start = q_1 if not seg.is_reverse else q_2 
-        q_end = q_2 if not seg.is_reverse else q_1
-        q_dup = get_dup(q_dup_bed_df, q_start , q_end)
-        if(q_dup == -1):
-            return -1
+        q_samp , q_hap = seg.qname.split("__")[0] , seg.qname.split("__")[1]
+        q_dup_bed_df = get_dup_bed_df(q_samp, q_hap, file_path_sep = "_")
+        assert q_dup_bed_df is not None , f"Couldn't find query locus bed: {q_samp} , {q_hap} in {locus_bed_dir }. Check file_path_sep char."
+        
+        q_1 , q_2 = get_q_map(seg, row.start) , get_q_map(seg, row.stop)
+        q_start = q_1 #q_1 if not seg.is_reverse else q_2 
+        q_end = q_2   #q_2 if not seg.is_reverse else q_1
+        
+        q_dup = get_dup(q_dup_bed_df, q_start , q_end, is_seg = False) ######!!!!!
+        if(q_dup is None):
+            continue
         assert len(q_dup) == 1 , f"Issue: getting {q_dup} query duplicon alignments to ref dup: {row} "
+        q_dup = q_dup.iloc[0] #turn into pandas Series
         #get scores.
         score = get_score(seg)
-        return pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'], 
-                                  seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , score ] ,
-                                  index = ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', score ] )
-
+        aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'], 
+                                    seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , score ] ,
+                                    index = list(aln_stats.columns.values))
+        aln_stats = aln_stats.append(aln_summary, ignore_index=True)
+    return aln_stats
 
 for cur_ref in aln_refs:
     sub_bam = bam.fetch(reference = cur_ref) # returns iterator of alignment file
