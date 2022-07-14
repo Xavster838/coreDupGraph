@@ -63,13 +63,14 @@ def get_rgn_fasta(wc):
 #      graph_file = #TO DO : figure out graph file format to use.
 #    run:
 
-#rule get_targ_query_coreDup_relations:
-#    '''process paf to assign alignment scores between query and target coreDups'''
-#    input:
-#        targ_coreDup_bed = get_bed_path("target") ,
-#        query_coreDup_bed = get_bed_path("query")
-#    output:
-#        graph_tab = "graph_targ_query_relations/{targ}_{query}_{r}.bed"
+rule get_targ_query_coreDup_relations:
+   '''process paf to assign alignment scores between query and target coreDups'''
+   input:
+       bam = rules.align_samples.output.bam
+   output:
+       locus_mappings = "graph_targ_query_relations/{targ}_{query}_{r}.bed"
+   script:
+       scripts/get_allelic_dup_mappings.py
 
 # rule filter_alignments:
 # '''process alignments so only dealing with informative alignments'''
