@@ -69,7 +69,17 @@ def get_score(seg):
     '''process and return alignment score from a pysam AlignedSegment. Return integer score.'''
     return [tag[1] for tag in seg.get_tags() if tag[0] == 'AS'][0]
 
-def process_segment(seg, ref_dup_bed_df , q_dup_bed_df ):
+def get_dup_bed_df(samp, hap , file_path_sep = "_"):
+    '''find and return name of locus bed for a sample haplotype. Or return None if not present'''
+    bed_match = [x for x in os.listdir(locus_bed_dir) if f"{samp}{file_path_sep}{hap}" in x]
+    if bed_match:
+        assert len(bed_match) == 1 , f"Didn't find only one bed file to match sample hap. found: {len(bed_match)}"
+        bed_df = pd.read_csv( f"{locus_bed_dir}/{bed_match[0]}", sep = "\t", header = None, names = ['sample', 'start', 'stop', 'name'] )
+        return bed_df
+    return None
+
+
+def process_segment(seg ):
     '''for each segment, identify reference query coreDup annotations.'''
     nested_dups = get_dup(ref_dup_bed_df , seg.reference_start, seg.reference_end)
     for i, row in nested_dups.iterrows():
