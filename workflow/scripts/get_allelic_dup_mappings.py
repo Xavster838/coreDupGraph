@@ -66,6 +66,7 @@ def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
     return None
 
 def get_score(seg):
+    '''process and return alignment score from a pysam AlignedSegment. Return integer score.'''
     return [tag[1] for tag in seg.get_tags() if tag[0] == 'AS'][0]
 
 def process_segment(seg, ref_dup_bed_df , q_dup_bed_df ):
