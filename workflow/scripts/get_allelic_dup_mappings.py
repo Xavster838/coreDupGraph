@@ -10,7 +10,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 bam_path =  snakemake.input.bam     #bam file being processed
-locus_bed_dir = "coreDup_beds" #directory holding all dup_beds for samples in bam.
+locus_bed_dir = snakemake.params.locus_bed_dir   #directory holding all dup_beds for samples in bam.
 
 bam = pysam.AlignmentFile(bam_path, "r")
 #get references and sort them
@@ -114,13 +114,12 @@ def process_segment(seg ):
 #def main():
 aggro_aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score' ])
 for cur_ref in aln_refs:
-    print(cur_ref)
     sub_bam = bam.fetch(reference = cur_ref) # returns iterator of alignment file
     alignments = list(sub_bam)
     #dup_aln_stats = map(process_segment, sub_bam) 
     aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score' ])
     for seg in alignments:
-        print(f"{seg.reference_name}:{seg.reference_start}-{seg.reference_end} ;; reverse: {seg.is_reverse} ;; {seg.qname}:{seg.qstart}-{seg.qend}")
+        print(f"processing: {seg.reference_name}:{seg.reference_start}-{seg.reference_end} ;; reverse: {seg.is_reverse} ;; {seg.qname}:{seg.qstart}-{seg.qend}")
         try:
             cur_aln_stats = process_segment(seg)
             if(aln_stats is not None):
@@ -129,9 +128,9 @@ for cur_ref in aln_refs:
             e = sys.exc_info()[0]
             print("ERROR")
             print(e)
-    aggro_aln_stats = aggro_aln_stats.append(dup_aln_stats)
+    aggro_aln_stats = aggro_aln_stats.append(aln_stats)
 
-aggro_aln_stats.to_csv(snakemake.output.locus_mappings , sep='\t' , header = True, index = False )
+aggro_aln_stats.to_csv(snakemake.output.locus_mappings , sep='\t' , header = True, index = False , na_rep='NA')
 
 #for main
 # if(aggro_aln_stats.shape[0] > 0):
