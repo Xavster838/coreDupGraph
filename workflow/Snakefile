@@ -11,6 +11,10 @@ from Bio import SeqIO
 
 rgns = config.keys()
 
+manifest_df = pd.read_csv(config["CYP2D6"]['manifest'], sep = '\t')
+manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False)
+sms, haps = zip(*manifest_df.index.values)
+
 wildcard_constraints:
    r="|".join(rgns),
 #  sm="|".join( set(manifest_df['sample']) ),
@@ -33,9 +37,17 @@ def get_rgn_fasta(wc):
     '''given rgn, return sequence fasta of locus'''
     return config[wc.r]['locus_fasta']
 
-#rule all:
-#    input:
-#      corDup_annot = expand("{sm}_{h}_{r}_cluster_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
+def get_all(wc):
+  f="coreDup_beds/{sm}_{h}_CYP2D6_annotation.bed"
+  o = []
+  for sm, hap in manifest_df.index.values:
+      o.append(f.format(sm=sm,h=hap))
+  return(o)
+
+rule all:
+    input:
+       corDup_annot = get_all 
+#      corDup_annot = expand("coreDup_beds/{sm}_{h}_{r}_annotation.bed", sm = list(manifest_df['sample']) , h = list(manifest_df['hap']), coreDup = config.get('locus_name') )
 #
 #rule annotate_cores:
 #   '''given clustered graph and haplotype of interest, annotate each core duplicon by graph clustering.'''
