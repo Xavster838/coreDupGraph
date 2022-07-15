@@ -75,13 +75,14 @@ rule all:
 #      graph_file = #TO DO : figure out graph file format to use.
 #    run:
 
-#rule get_targ_query_coreDup_relations:
-#    '''process paf to assign alignment scores between query and target coreDups'''
-#    input:
-#        targ_coreDup_bed = get_bed_path("target") ,
-#        query_coreDup_bed = get_bed_path("query")
-#    output:
-#        graph_tab = "graph_targ_query_relations/{targ}_{query}_{r}.bed"
+rule get_targ_query_coreDup_relations:
+   '''process paf to assign alignment scores between query and target coreDups'''
+   input:
+       bam = rules.align_samples.output.bam
+   output:
+       locus_mappings = "graph_targ_query_relations/{targ}_{query}_{r}.bed"
+   script:
+       scripts/get_allelic_dup_mappings.py
 
 # rule filter_alignments:
 # '''process alignments so only dealing with informative alignments'''
@@ -93,7 +94,7 @@ rule align_samples:
     input:
       combined_fa = "combined_fa/{r}_combined.fa" #rules._rename_combine_fastas.output.cat_fa
     output:
-      paf = "{r}_all_vs_all.paf"
+      bam = "{r}_all_vs_all.paf"
     threads: 16
     resources:
       mem_gb=4,
@@ -101,7 +102,7 @@ rule align_samples:
     conda:
       "envs/align.yaml"
     shell:'''
-minimap2 -x asm10 -X -t {threads} -c --eqx -r 500 -K 500M {input.combined_fa} {input.combined_fa} > {output.paf}
+minimap2 -ax asm10 -X -t {threads} -c --eqx -r 500 -K 500M {input.combined_fa} {input.combined_fa}  | samtools view -b - | samtools sort > ${cur_out_name}.bam
 '''
 
 rule annotate_coreDup:
