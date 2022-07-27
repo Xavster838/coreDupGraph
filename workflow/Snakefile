@@ -150,3 +150,14 @@ rule _rename_combine_fastas:
                 os.system(f"cat {output.temp_fa} >> {output.cat_fa}")
             name_change_df = name_change_df.append(cur_name_change_df) #include name change in map file.
         name_change_df.to_csv(output.old_new_name_map, sep='\t' , header = True, index = False) 
+
+rule get_cluster_annotations:
+  '''given mappings table from rule get_targ_query_coreDup_relations, produce cluster annotations using louvain clustering and output tbl with paralog-cluster map.'''
+  input:
+    mapping_stats = rules.get_targ_query_coreDup_relations.output.locus_mappings
+  output:
+    cluster_annotation = "{r}/{r}_dup_clustering_annotations.txt"
+  conda:
+    "envs/networkX.yml"
+  script:
+    "scripts/get_cluster_annotations.py"
