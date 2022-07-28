@@ -5,6 +5,7 @@ import pysam
 import numpy as np
 import pandas as pd 
 import os
+import sys
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -37,16 +38,21 @@ def get_q_map(seg , ref_coord):
     ####________________
     r_loc = seg.reference_start
     q_step = 0  #how far query coordinate will be from query start
+    soft_clipped = seg.cigarstring.find("S") != -1
     for opt, l in seg.cigartuples:
         if(opt in conRef):
             l = min(l, ref_coord - r_loc)
             r_loc += l
         if(opt in conQuery):
             q_step += l
-        if(r_loc == ref_coord):
-            q_coord = seg.qend - q_step if seg.is_reverse else seg.qstart + q_step
+        if(r_loc >= ref_coord):
+            if(seg.is_reverse):
+                q_coord = seg.query_length - q_step if soft_clipped else seg.query_alignment_end - q_step
+            else:
+                q_coord = q_step if soft_clipped else seg.query_alignment_start + q_step
             return q_coord
     assert r_loc <= ref_coord , f"problem with arighmetic. r_loc larger than ref_coord : {r_loc} , {ref_coord}"
+    assert q_coord <= seg.query_alignment_end , f"problem with arithmetic. q_coord longer than query alignment end : q_coord : {q_coord} ; alignment length : {seg.query_alignment_end} "
     raise Exception(f"Got to end of cigar tuple without reaching ref_coordinate {seg.reference_name} : {ref_coord}")
 
 def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
