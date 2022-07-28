@@ -128,7 +128,7 @@ minimap2 -x asm20 -P -t {threads} -c --eqx -m 100 -r 500 -K 500M {input.locus_fa
 rule _rename_combine_fastas:
     '''rename sample contigs to only contain: sample_hap_tig1,2,... and merge to single combined fasta'''
     output:
-      old_new_name_map = "tigName_maps/{r}_tig_name_changes" ,
+      old_new_name_map = "tigName_maps/{r}_tig_name_changes.tbl" ,
       cat_fa = "combined_fa/{r}_combined.fa" ,
       temp_fa = temp("temp_{r}.fa")
     params:
