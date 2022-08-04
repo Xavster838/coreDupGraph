@@ -5,7 +5,8 @@ flag_labels = list(RUN_NAME = '--run_name' ,
                    help = "-h",
                    GENE_PATTERN = "--gene_pattern",
                    OUT_FILE = "--outfile_name",
-                   RLIB_PATH = "--rlib"
+                   RLIB_PATH = "--rlib" ,
+                   GENE_ANNOTATIONS = "--gene_bed_annotations"
 )
 
 ################
@@ -17,6 +18,7 @@ if( length(help_stats == 1) ){
   print("--run_name : REQUIRED :  Run name of a given run from minigraph.smk.")
   print("--outfile_name : REQUIRED : name of pdf file you wish to output. Please include .pdf extension in name.")
   print("--gene_bed : Optional :  bed of gene models to include as a track in squashed dot plot.")
+  print("--gene_bed_annotations : Optional : if you want to color genes in a specific way: pass table with gene name and some factoring variable in second column")
   print("--duplicon_bed : Optional : bed of duplicons created by dupmasker to include as track in squashed dot plot.")
   print('--gene_pattern : Optional: if --gene_bed contains all gene annotations and you want to focus on a specific gene, specify that pattern to search for here.')
   print("--rlib : Optional : if there's a R library you want to include in the path to access required packages, add it here.")
@@ -53,6 +55,7 @@ get_flag_var = function(args, flag_name){
 RUN_NAME = get_flag_var(args, flag_name = flag_labels[['RUN_NAME']] )
 GENE_BED = get_flag_var(args, flag_name = flag_labels[['GENE_BED']] )
 DUP_BED = get_flag_var(args, flag_name = flag_labels[['DUP_BED']] )
+GENE_ANNOTATIONS = get_flag_var(args, flag_name = flag_labels[['GENE_ANNOTATIONS']] )
 GENE_PATTERN = get_flag_var(args, flag_name = flag_labels[['GENE_PATTERN']] )
 OUT_FILE = get_flag_var(args, flag_name = flag_labels[['OUT_FILE']] )
 RLIB_PATH = get_flag_var(args, flag_name = flag_labels[['RLIB_PATH']] )
@@ -64,14 +67,14 @@ RLIB_PATH = get_flag_var(args, flag_name = flag_labels[['RLIB_PATH']] )
 if(!is.na(RLIB_PATH)){
   .libPaths( c( .libPaths(), RLIB_PATH ) )
 }
-
+if(! require("R.utils")) install.packages("R.utils")
 if(! require("tidyverse")) install.packages("tidyverse")
 if(! require("data.table")) install.packages("data.table")
 if(! require("glue")) install.packages("glue")
 if(! require("RColorBrewer")) install.packages("RColorBrewer")
 if(! require("scales")) install.packages("scales")
 if(! require("cowplot")) install.packages("cowplot")
-if(! require("gridExtra")) install.packages("cowplot")
+if(! require("gridExtra")) install.packages("gridExtra")
 
 
 
@@ -84,7 +87,11 @@ tri_bed <- function(f, s=.2, y_mid = 0.5){
   #df = fread(glue("../sd_regions_in_hifi_wga/lpa/minimiro/temp_minimiro/{gene}_query.fasta.duplicons.extra")); df
   df=fread(f)
   names(df)[1:3]=c("query","start","end")
-  names(df)[6] = "strand"
+  if(length(names(df)) >= 6){
+    names(df)[6] = "strand"
+  }else{
+    df$strand = "+"
+  }
   df = df[order(query,start)]
   df$query = factor(df$query)
   df$y = y_mid
@@ -107,12 +114,13 @@ DUPLICONS = DUPLICONS %>%
   relocate(q_samp, .before = start) %>% relocate(q_hap, .after = q_samp ) %>% 
   mutate(query = paste(q_samp, q_hap, sep = "__"))
 #change RGB to hex color
-DUPLICONS$color = sapply(DUPLICONS$V9, FUN = function(cur_rgb){ 
+DUPLICONS$color = sapply(DUPLICONS$color, FUN = function(cur_rgb){ 
   cur_rgb = as.numeric( unlist(strsplit(cur_rgb, split = ",")) )
   rgb(cur_rgb[1], cur_rgb[2], cur_rgb[3], maxColorValue = 255)
 } )
 
 
+genes = tibble(read_tsv(GENE_BED), s = 0.3, y_mid = 0.5)
 ALL_GENES = tri_bed( GENE_BED , s = 0.3, y_mid = 0.5)
 names(ALL_GENES)[4] = "gene_name"
 #add run_name ; process query name ; add size ; 
@@ -128,6 +136,12 @@ if(!is.na(GENE_PATTERN)){ ##Process A GENE_PATTERN --> gff with many genes
   ALL_GENES = ALL_GENES %>% group_by(q_samp, q_hap , gene_name) %>% filter(size == max(size)) %>% slice_head(n = 4) %>% ungroup()
 }
 
+#add coloring to genes
+gene_annotations = tibble(read_tsv(GENE_ANNOTATIONS))
+ALL_GENES = left_join(ALL_GENES, gene_annotations, by = c("gene_name" = "dup"))
+#figure out colors:
+length(unique(ALL_GENES$cluster))
+
 
 plt = ggplot(data = DUPLICONS) + 
   geom_polygon( aes(x=xs, y=ys, group=tri_id), 
@@ -135,8 +149,10 @@ plt = ggplot(data = DUPLICONS) +
   facet_wrap(~query , ncol = 1)
 
 plt = plt + geom_polygon(data=ALL_GENES, 
-                         aes(x=xs, y=ys, group=tri_id), fill = "red") + 
-  facet_wrap(~query , ncol = 1)
+                         aes(x=xs, y=ys, group=tri_id, fill = as.factor(cluster) ) ) + # , fill = "red") + 
+  facet_wrap(~query , ncol = 1) + 
+  scale_fill_brewer(palette="Spectral")
+  
 
 n_samples = length( unique(DUPLICONS$query) ) 
 pdf_height = n_samples * 1
