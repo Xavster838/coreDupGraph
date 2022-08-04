@@ -53,7 +53,7 @@ def get_flank_dup(dup_bed_df, cur_dup_i, seg ):
        @input : seg : pysam AlignmentSegment being processed.
        @output: coords : tuple of start and end coordinates alignemnts (reference coordinates)
     '''
-    coord_start = seg.reference_start if cur_dup_i == 0 else dup_bed_df.loc[i-1, 'end']
+    coord_start = seg.reference_start if cur_dup_i == 0 else dup_bed_df.loc[i-1, 'stop']
     coord_end = seg.reference_end if cur_dup_i == dup_bed_df.shape[0] - 1 else dup_bed_df.loc[i-1, 'start']
     return (coord_start , coord_end)
 
