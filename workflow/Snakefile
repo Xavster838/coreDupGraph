@@ -86,15 +86,20 @@ rule align_samples:
     input:
       combined_fa = "combined_fa/{r}_combined.fa" #rules._rename_combine_fastas.output.cat_fa
     output:
-      bam = "{r}_all_vs_all.bam"
-    threads: 16
+      bam = "{r}_all_vs_all.bam",
+      bai = "{r}_all_vs_all.bam.bai"
+    threads: 24
+    params:
+      min_len = 5000 ,
+      samtools_threads = lambda wildcards, threads: min(4, threads)
     resources:
       mem_gb=4,
       hrs=4
     conda:
       "envs/align.yaml"
     shell:'''
-minimap2 -ax asm10 -X -t {threads} -c --eqx -r 500 -K 500M {input.combined_fa} {input.combined_fa}  | samtools view -b - | samtools sort > {output.bam}
+minimap2 -x asm10 -X -t {threads} -c --eqx -r 500 -K 500M {input.combined_fa} {input.combined_fa}  | rb filter -a {params.min_len} | rb paf-to-sam | samtools view --threads {params.samtools_threads} -b - | samtools sort > {output.bam}
+samtools index {output.bam}
 '''
 
 rule get_targ_query_coreDup_relations:
