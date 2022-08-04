@@ -6,6 +6,12 @@ import numpy as np
 import pandas as pd 
 import os
 import sys
+#import functions and classes from repo process_cigar
+sys.path.append('/net/eichler/vol26/home/guitarfx/software/github_clones/alignment_operations')
+from cigar_opt_class import CigarOperation
+from cigar_opt_class import cigar_dict
+import process_cigar
+#import functions and classes from repo process_cigar
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -20,40 +26,8 @@ aln_refs.sort()
 
 def get_q_map(seg , ref_coord):
     '''given segment and a reference coordinate, return the query coordinate that maps to that location.'''
-    ####_______________ Parsing Cigar String
-    M=0 #M  BAM_CMATCH      0
-    I=1 #I  BAM_CINS        1
-    D=2 #D  BAM_CDEL        2
-    N=3 #N  BAM_CREF_SKIP   3
-    S=4 #S  BAM_CSOFT_CLIP  4
-    H=5 #H  BAM_CHARD_CLIP  5
-    P=6 #P  BAM_CPAD        6
-    E=7 #=  BAM_CEQUAL      7
-    X=8 #X  BAM_CDIFF       8
-    B=9 #B  BAM_CBACK       9
-    NM=10 #NM       NM tag  10
-    conRef  =       [M, D, N, E, X] # these ones "consume" the reference
-    conQuery=       [M, I, S, E, X] # these ones "consume" the query
-    conAln  =       [M, I, D, N, S, E, X] # these ones "consume" the alignments
-    ####________________
-    r_loc = seg.reference_start
-    q_step = 0  #how far query coordinate will be from query start
-    soft_clipped = seg.cigarstring.find("S") != -1
-    for opt, l in seg.cigartuples:
-        if(opt in conRef):
-            l = min(l, ref_coord - r_loc)
-            r_loc += l
-        if(opt in conQuery):
-            q_step += l
-        if(r_loc >= ref_coord):
-            if(seg.is_reverse):
-                q_coord = seg.query_length - q_step if soft_clipped else seg.query_alignment_end - q_step
-            else:
-                q_coord = q_step if soft_clipped else seg.query_alignment_start + q_step
-            return q_coord
-    assert r_loc <= ref_coord , f"problem with arighmetic. r_loc larger than ref_coord : {r_loc} , {ref_coord}"
-    assert q_coord <= seg.query_alignment_end , f"problem with arithmetic. q_coord longer than query alignment end : q_coord : {q_coord} ; alignment length : {seg.query_alignment_end} "
-    raise Exception(f"Got to end of cigar tuple without reaching ref_coordinate {seg.reference_name} : {ref_coord}")
+    return process_cigar.get_qCoord_from_rCoord( seg , ref_coord )
+    
 
 def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
     '''identify bed duplicon coordinates corresponding to a given start and end, or return None
