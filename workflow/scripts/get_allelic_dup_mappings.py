@@ -32,7 +32,7 @@ def get_q_map(seg , ref_coord):
 def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
     '''identify bed duplicon coordinates corresponding to a given start and end, or return None
     @output: subset of dup_bed_df for core dups corresponding to the region of interest
-    @input: is_seg: if giving coordinates of the alignment boudaries of a segment, need to adjust dup bed to not go beyond alignment.
+    @input: is_seg: if coord start and end are the boundaries of an alignment segment, then need to adjust dup bed to not go beyond alignment.
     '''
     assert coord_start <= coord_end , f"coordinates wrong: start > end. coord_start: {coord_start} ; coord_end : {coord_end}"
     coords = pd.Interval( coord_start , coord_end )
@@ -46,9 +46,22 @@ def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
         return sub_bed
     return None
 
+def get_flank_dup(dup_bed_df, cur_dup_i, seg ):
+    '''Extend and return reference coordinates containing and spanning to adjacent duplicons or end of alignment.
+       @input : dup_bed_df : bedframe generated from script: scripts/get_cluster_annotations.py
+       @input : cur_dup_i : index of dup row in dup_bed_df is being looked at.
+       @input : seg : pysam AlignmentSegment being processed.
+       @output: coords : tuple of start and end coordinates alignemnts (reference coordinates)
+    '''
+    coord_start = seg.reference_start if cur_dup_i == 0 else dup_bed_df.loc[i-1, 'end']
+    coord_end = seg.reference_end if cur_dup_i == dup_bed_df.shape[0] - 1 else dup_bed_df.loc[i-1, 'start']
+    return (coord_start , coord_end)
+
+
 def get_score(seg):
     '''process and return alignment score from a pysam AlignedSegment. Return integer score.'''
     return [tag[1] for tag in seg.get_tags() if tag[0] == 'AS'][0]
+
 
 def get_dup_bed_df(samp, hap , file_path_sep = "_"):
     '''find and return name of locus bed for a sample haplotype. Or return None if not present'''
