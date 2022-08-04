@@ -88,8 +88,8 @@ def process_segment(seg ):
         assert q_dup_bed_df is not None , f"Couldn't find query locus bed: {q_samp} , {q_hap} in {locus_bed_dir }. Check file_path_sep char."
         
         q_1 , q_2 = get_q_map(seg, row.start) , get_q_map(seg, row.stop)
-        q_start = q_1 #q_1 if not seg.is_reverse else q_2 
-        q_end = q_2   #q_2 if not seg.is_reverse else q_1
+        q_start = q_1 if not seg.is_reverse else q_2 
+        q_end = q_2 if not seg.is_reverse else q_1
         
         q_dup = get_dup(q_dup_bed_df, q_start , q_end, is_seg = False) ######!!!!!
         if(q_dup is None):
