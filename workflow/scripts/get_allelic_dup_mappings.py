@@ -46,7 +46,7 @@ def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
         return sub_bed
     return None
 
-def get_flank_dup(dup_bed_df, cur_dup_i, seg ):
+def get_dup_flank_coords(dup_bed_df, cur_dup_i, seg ):
     '''Extend and return reference coordinates containing and spanning to adjacent duplicons or end of alignment.
        @input : dup_bed_df : bedframe generated from script: scripts/get_cluster_annotations.py
        @input : cur_dup_i : index of dup row in dup_bed_df is being looked at.
@@ -58,9 +58,13 @@ def get_flank_dup(dup_bed_df, cur_dup_i, seg ):
     return (coord_start , coord_end)
 
 
-def get_score(seg):
+def get_score(seg, ref_start = None, ref_stop = None):
     '''process and return alignment score from a pysam AlignedSegment. Return integer score.'''
-    return [tag[1] for tag in seg.get_tags() if tag[0] == 'AS'][0]
+    if( ref_start is not None and ref_stop is not None ):
+        subset_cigar_tuples = process_cigar.subset_cigar(seg ,ref_start , ref_stop)
+        return process_cigar.get_cigarTuple_alignment_score( subset_cigar_tuples )
+    else:
+        return process_cigar.get_cigarTuple_alignment_score(seg.cigartuples)
 
 
 def get_dup_bed_df(samp, hap , file_path_sep = "_"):
@@ -71,7 +75,6 @@ def get_dup_bed_df(samp, hap , file_path_sep = "_"):
         bed_df = pd.read_csv( f"{locus_bed_dir}/{bed_match[0]}", sep = "\t", header = None, names = ['sample', 'start', 'stop', 'name'] )
         return bed_df
     return None
-
 
 def process_segment(seg ):
     '''for each segment, identify reference query coreDup annotations.'''
@@ -97,7 +100,8 @@ def process_segment(seg ):
         assert len(q_dup) == 1 , f"Issue: getting {q_dup} query duplicon alignments to ref dup: {row} "
         q_dup = q_dup.iloc[0] #turn into pandas Series
         #get scores.
-        score = get_score(seg)
+        flank_tuple = get_dup_flank_coords( ref_dup_bed_df , i , seg ) #get coordinates of flanks of dup.
+        score = get_score(seg, flank_tuple[0] , flank_tuple[1])
         aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'], 
                                     seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , score ] ,
                                     index = list(aln_stats.columns.values))
