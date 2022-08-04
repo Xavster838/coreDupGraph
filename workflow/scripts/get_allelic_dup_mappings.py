@@ -111,7 +111,8 @@ for cur_ref in aln_refs:
     alignments = list(sub_bam)
     #dup_aln_stats = map(process_segment, sub_bam) 
     aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score' ])
-    for seg in alignments:
+    for i, seg in enumerate(alignments):
+        print(i)
         print(f"processing: {seg.reference_name}:{seg.reference_start}-{seg.reference_end} ;; reverse: {seg.is_reverse} ;; {seg.qname}:{seg.qstart}-{seg.qend}")
         try:
             cur_aln_stats = process_segment(seg)
@@ -121,6 +122,7 @@ for cur_ref in aln_refs:
             e = sys.exc_info()[0]
             print("ERROR")
             print(e)
+            break
     aggro_aln_stats = aggro_aln_stats.append(aln_stats)
 
 aggro_aln_stats.to_csv(snakemake.output.locus_mappings , sep='\t' , header = True, index = False , na_rep='NA')
