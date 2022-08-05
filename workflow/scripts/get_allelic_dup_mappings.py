@@ -113,7 +113,8 @@ def process_segment(seg ):
         aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'],
                                     seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , score ] ,
                                     index = list(aln_stats.columns.values))
-        aln_stats = aln_stats.append(aln_summary, ignore_index=True)
+        aln_stats = pd.concat([aln_stats, aln_summary.to_frame().T])   
+        #aln_stats = aln_stats.append(aln_summary, ignore_index=True)
     return aln_stats
 
 
