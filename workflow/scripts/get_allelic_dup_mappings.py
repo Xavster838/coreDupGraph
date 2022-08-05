@@ -14,6 +14,7 @@ import process_cigar
 #import functions and classes from repo process_cigar
 from multiprocessing import cpu_count
 from multiprocessing.pool import Pool
+import time
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
