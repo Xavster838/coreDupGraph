@@ -83,6 +83,7 @@ def process_segment(seg ):
     '''for each segment, identify reference query coreDup annotations.'''
     ref_samp, ref_hap = seg.reference_name.split("__")[0] , seg.reference_name.split("__")[1]
     ref_dup_bed_df = get_dup_bed_df( ref_samp,  ref_hap, file_path_sep = "_" )
+    ref_dup_bed_df = ref_dup_bed_df.sort_values(by = "start").reset_index(drop= True)
     assert ref_dup_bed_df is not None , f"Couldn't find reference locus bed: {ref_samp} , {ref_hap} in {locus_bed_dir }. Check file_path_sep char."
     nested_dups = get_dup(ref_dup_bed_df , seg.reference_start, seg.reference_end, is_seg = True)
     if(nested_dups is None):
@@ -92,11 +93,11 @@ def process_segment(seg ):
         q_samp , q_hap = seg.qname.split("__")[0] , seg.qname.split("__")[1]
         q_dup_bed_df = get_dup_bed_df(q_samp, q_hap, file_path_sep = "_")
         assert q_dup_bed_df is not None , f"Couldn't find query locus bed: {q_samp} , {q_hap} in {locus_bed_dir }. Check file_path_sep char."
-        
+
         q_1 , q_2 = get_q_map(seg, row.start) , get_q_map(seg, row.stop)
-        q_start = q_1 if not seg.is_reverse else q_2 
+        q_start = q_1 if not seg.is_reverse else q_2
         q_end = q_2 if not seg.is_reverse else q_1
-        
+
         q_dup = get_dup(q_dup_bed_df, q_start , q_end, is_seg = False) ######!!!!!
         if(q_dup is None):
             continue
