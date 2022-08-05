@@ -12,6 +12,8 @@ from cigar_opt_class import CigarOperation
 from cigar_opt_class import cigar_dict
 import process_cigar
 #import functions and classes from repo process_cigar
+from multiprocessing import cpu_count
+from multiprocessing.pool import Pool
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -106,39 +108,30 @@ def process_segment(seg ):
         #get scores.
         flank_tuple = get_dup_flank_coords( ref_dup_bed_df , i , seg ) #get coordinates of flanks of dup.
         score = get_score(seg, flank_tuple[0] , flank_tuple[1])
-        aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'], 
+        assert score <= flank_tuple[1] - flank_tuple[0] , f"Issue: problem with segment: getting higher score than size of locus: score {score}  flank_tuple : {flank_tuple}"
+        aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'],
                                     seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , score ] ,
                                     index = list(aln_stats.columns.values))
         aln_stats = aln_stats.append(aln_summary, ignore_index=True)
     return aln_stats
 
-#def main():
-aggro_aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score' ])
-for cur_ref in aln_refs:
-    sub_bam = bam.fetch(reference = cur_ref) # returns iterator of alignment file
-    alignments = list(sub_bam)
-    #dup_aln_stats = map(process_segment, sub_bam) 
-    aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score' ])
-    for i, seg in enumerate(alignments):
-        print(i)
-        print(f"processing: {seg.reference_name}:{seg.reference_start}-{seg.reference_end} ;; reverse: {seg.is_reverse} ;; {seg.qname}:{seg.qstart}-{seg.qend}")
-        try:
-            cur_aln_stats = process_segment(seg)
-            if(aln_stats is not None):
-                aln_stats = aln_stats.append(cur_aln_stats, ignore_index=True)
-        except:
-            e = sys.exc_info()[0]
-            print("ERROR")
-            print(e)
-            break
-    aggro_aln_stats = aggro_aln_stats.append(aln_stats)
 
-aggro_aln_stats.to_csv(snakemake.output.locus_mappings , sep='\t' , header = True, index = False , na_rep='NA')
+def process_ref(cur_ref , bam_path = bam_path ):
+    with open_pysam(bam_path) as bam:
+        alignments = list( bam.fetch(reference = cur_ref) )
+    return get_aln_stats(alignments)
 
-#for main
-# if(aggro_aln_stats.shape[0] > 0):
-#     return aggro_aln_stats
-# return -1
+start = time.time()
+pool = Pool(processes = min( {snakmake.threads}-1 , cpu_count()-1 )
+x = pool.map( process_ref, aln_refs , chunksize = 1 ) #lambda x : process_ref(x , bam) , aln_refs[0:3] ) 
+pool.close()
+pool.join()
+mapped_alignments = pd.concat(x , axis = 0)
+end = time.time()
+print ("Time elapsed:", end - start)
+
+mapped_alignments.to_csv(snakemake.output.locus_mappings , sep='\t' , header = True, index = False , na_rep='NA')
+
     
 
 
