@@ -108,6 +108,9 @@ rule get_targ_query_coreDup_relations:
        bam = rules.align_samples.output.bam
    output:
        locus_mappings = "{r}/{r}_ref_query_locus_mapping_stats.txt"
+   threads: 40
+   conda:
+       "envs/align.yaml"
    params:
        locus_bed_dir = "coreDup_beds"
    script:
