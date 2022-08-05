@@ -117,14 +117,40 @@ def process_segment(seg ):
         #aln_stats = aln_stats.append(aln_summary, ignore_index=True)
     return aln_stats
 
+def try_process_seg(segment):
+    '''process segment or return error
+       @input: pysam AlignmentSegment object
+       @output: result from process_segment() or None
+    '''
+    try:
+        cur_aln_stats = process_segment(segment)
+        if(cur_aln_stats is not None):
+            return cur_aln_stats
+        # if(cur_aln_stats is not None):
+        #     aln_stats = aln_stats.append(cur_aln_stats, ignore_index=True)
+    except:
+        e = sys.exc_info()[0]
+        print("ERROR")
+        print(e)
+    return None
+
+def get_aln_stats(alignments):
+    '''logic to map try_process_seg across a set of alignments'''
+    x = map( try_process_seg , alignments)
+    return pd.concat(x , axis = 0)
+
+def open_pysam(filepath_or_object, mode="r"):
+    '''open a pysam object in read mode'''
+    return pysam.AlignmentFile(filepath_or_object, mode)
 
 def process_ref(cur_ref , bam_path = bam_path ):
+    '''process bam reads for one reference'''
     with open_pysam(bam_path) as bam:
         alignments = list( bam.fetch(reference = cur_ref) )
     return get_aln_stats(alignments)
 
 start = time.time()
-pool = Pool(processes = min( {snakmake.threads}-1 , cpu_count()-1 )
+pool = Pool(processes = min( snakemake.threads - 1 , cpu_count()-1 ) )
 x = pool.map( process_ref, aln_refs , chunksize = 1 ) #lambda x : process_ref(x , bam) , aln_refs[0:3] ) 
 pool.close()
 pool.join()
