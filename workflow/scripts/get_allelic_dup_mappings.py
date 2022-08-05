@@ -41,8 +41,8 @@ def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
     if any(overlaps):
         sub_bed = dup_bed_df.loc[overlaps , :]
         if(is_seg):
-            sub_bed['start'] = sub_bed['start'].map(lambda x: max(x, seg.reference_start) )
-            sub_bed['stop'] = sub_bed['stop'].map(lambda x: min(x, seg.reference_end) )
+            sub_bed['start'] = sub_bed['start'].map(lambda x: max(x, coord_start ) )
+            sub_bed['stop'] = sub_bed['stop'].map(lambda x: min(x, coord_end ) )
         return sub_bed
     return None
 
@@ -53,8 +53,11 @@ def get_dup_flank_coords(dup_bed_df, cur_dup_i, seg ):
        @input : seg : pysam AlignmentSegment being processed.
        @output: coords : tuple of start and end coordinates alignemnts (reference coordinates)
     '''
-    coord_start = seg.reference_start if cur_dup_i == 0 else dup_bed_df.loc[i-1, 'stop']
-    coord_end = seg.reference_end if cur_dup_i == dup_bed_df.shape[0] - 1 else dup_bed_df.loc[i-1, 'start']
+    dup_bed_df = dup_bed_df.sort_values(by = 'start') #make sure it's sorted
+    coord_start = seg.reference_start if cur_dup_i == 0 else dup_bed_df.loc[cur_dup_i-1, 'stop']
+    coord_start = max(seg.reference_start, coord_start)
+    coord_end = seg.reference_end if cur_dup_i == dup_bed_df.shape[0] - 1 else dup_bed_df.loc[cur_dup_i+1, 'start']
+    coord_end = min(seg.reference_end, coord_end )
     return (coord_start , coord_end)
 
 
