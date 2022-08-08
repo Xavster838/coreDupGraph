@@ -78,7 +78,8 @@ def get_dup_bed_df(samp, hap , file_path_sep = "_"):
     bed_match = [x for x in os.listdir(locus_bed_dir) if f"{samp}{file_path_sep}{hap}" in x]
     if bed_match:
         assert len(bed_match) == 1 , f"Didn't find only one bed file to match sample hap. found: {len(bed_match)}"
-        bed_df = pd.read_csv( f"{locus_bed_dir}/{bed_match[0]}", sep = "\t", header = None, names = ['sample', 'start', 'stop', 'name'] )
+        bed_df = pd.read_csv( f"{locus_bed_dir}/{bed_match[0]}", sep = "\t", header = None )
+        bed_df = bed_df.rename( columns = dict( zip( range(0,6) , ['sample', 'start', 'stop', 'name', '.', 'strand']  ) ) )  #change column namee 
         return bed_df
     return None
 
