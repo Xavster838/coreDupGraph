@@ -92,7 +92,7 @@ def process_segment(seg ):
     nested_dups = get_dup(ref_dup_bed_df , seg.reference_start, seg.reference_end, is_seg = True)
     if(nested_dups is None):
         return None
-    aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score', 'strand' ])
+    aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'q', 'q_start', 'q_stop', 'q_dup_name', 'score', 'score_length' , 'strand' ]) #score_length: length of alignment over which score was computed
     for i, row in nested_dups.iterrows():
         q_samp , q_hap = seg.qname.split("__")[0] , seg.qname.split("__")[1]
         q_dup_bed_df = get_dup_bed_df(q_samp, q_hap, file_path_sep = "_")
@@ -114,7 +114,7 @@ def process_segment(seg ):
         strand = '-' if seg.is_reverse else '+'
         assert score <= flank_tuple[1] - flank_tuple[0] , f"Issue: problem with segment: getting higher score than size of locus: score {score}  flank_tuple : {flank_tuple}"
         aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'],
-                                    seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , score , strand] ,
+                                    seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , score , flank_tuple[1] - flank_tuple[0] , strand] ,
                                     index = list(aln_stats.columns.values))
         aln_stats = pd.concat([aln_stats, aln_summary.to_frame().T])   
         #aln_stats = aln_stats.append(aln_summary, ignore_index=True)
