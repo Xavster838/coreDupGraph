@@ -117,8 +117,8 @@ def process_segment(seg ):
         #get strand
         strand = '-' if seg.is_reverse else '+'
         assert score <= flank_tuple[1] - flank_tuple[0] , f"Issue: problem with segment: getting higher score than size of locus: score {score}  flank_tuple : {flank_tuple}"
-        aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'], r_flank_start, r_flank_stop
-                                    seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , q_flank_start, q_flank_stop , score , flank_tuple[1] - flank_tuple[0] , strand] ,
+        aln_summary = pd.Series( data = [seg.reference_name , row['start'], row['stop'] , row['name'], r_flank_start, r_flank_stop ,
+                                    seg.qname, q_dup['start'], q_dup['stop'] , q_dup['name'] , q_flank_start, q_flank_stop , score  , strand] ,
                                     index = list(aln_stats.columns.values))
         aln_stats = pd.concat([aln_stats, aln_summary.to_frame().T])   
         #aln_stats = aln_stats.append(aln_summary, ignore_index=True)
