@@ -9,11 +9,12 @@ from Bio import SeqIO
 
 #workdir: "dup_denebulatizer_output"
 
+#get regions samples and haps
 rgns = config.keys()
 
-manifest_df = pd.read_csv(config["CYP2D6"]['manifest'], sep = '\t')
-manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False)
-sms, haps = zip(*manifest_df.index.values)
+#manifest_df = pd.read_csv(config["TBC1D3"]['manifest'], sep = '\t')
+#manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False)
+#sms, haps = zip(*manifest_df.index.values)
 
 wildcard_constraints:
    r="|".join(rgns),
@@ -38,10 +39,15 @@ def get_rgn_fasta(wc):
     return config[wc.r]['locus_fasta']
 
 def get_all(wc):
-  f="coreDup_beds/{sm}_{h}_CYP2D6_annotation.bed"
+  '''get all corDup_beds needed for output.'''
+  f="{r}/coreDup_beds/{sm}_{h}_annotation.bed"
   o = []
-  for sm, hap in manifest_df.index.values:
-      o.append(f.format(sm=sm,h=hap))
+  for r in rgns:
+      manifest_df = pd.read_csv( config[r]['manifest'], sep = "\t" )
+      manifest_df = manifest_df.set_index(keys = ['sample', 'hap'], drop=False) 
+      for sm, hap in manifest_df.index.values:
+          o.append(f.format(sm=sm,h=hap, r = r))
+          o.append(f"{r}/{r}_dup_clustering_annotations.txt")
   return(o)
 
 rule all:
@@ -84,7 +90,7 @@ rule all:
 rule align_samples:
    '''generate paf between target and query haplotypes'''
     input:
-      combined_fa = "combined_fa/{r}_combined.fa" #rules._rename_combine_fastas.output.cat_fa
+      combined_fa = "{r}/combined_fa/{r}_combined.fa" #rules._rename_combine_fastas.output.cat_fa
     output:
       bam = "{r}_all_vs_all.bam",
       bai = "{r}_all_vs_all.bam.bai"
@@ -122,7 +128,7 @@ rule annotate_coreDup:
       hap_asm_fa = get_hap_fasta,
       locus_fa = get_rgn_fasta 
     output:
-      core_bed = "coreDup_beds/{sm}_{h}_{r}_annotation.bed"
+      core_bed = "{r}/coreDup_beds/{sm}_{h}_annotation.bed"
     threads: 8
     params:
       min_aln_len=3342 #3/4ths length CYP2D6...to change
@@ -136,9 +142,9 @@ minimap2 -x asm20 -P -t {threads} -c --eqx -m 100 -r 500 -K 500M {input.locus_fa
 rule _rename_combine_fastas:
     '''rename sample contigs to only contain: sample_hap_tig1,2,... and merge to single combined fasta'''
     output:
-      old_new_name_map = "tigName_maps/{r}_tig_name_changes.tbl" ,
-      cat_fa = "combined_fa/{r}_combined.fa" ,
-      temp_fa = temp("temp_{r}.fa")
+      old_new_name_map = "{r}/tigName_maps/{r}_tig_name_changes.tbl" ,
+      cat_fa = "{r}/combined_fa/{r}_combined.fa" ,
+      temp_fa = temp("{r}/temp_{r}.fa")
     params:
       manifest_df = get_manifest_df
     run:
