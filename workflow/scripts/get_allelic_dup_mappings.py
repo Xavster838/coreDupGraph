@@ -32,12 +32,13 @@ def get_q_map(seg , ref_coord):
     return process_cigar.get_qCoord_from_rCoord( seg , ref_coord )
     
 
-def get_dup(dup_bed_df , coord_start , coord_end, is_seg = False):
+def get_dup(dup_bed_df , tig_name ,coord_start , coord_end, is_seg = False):
     '''identify bed duplicon coordinates corresponding to a given start and end, or return None
     @output: subset of dup_bed_df for core dups corresponding to the region of interest
     @input: is_seg: if coord start and end are the boundaries of an alignment segment, then need to adjust dup bed to not go beyond alignment.
     '''
     assert coord_start <= coord_end , f"coordinates wrong: start > end. coord_start: {coord_start} ; coord_end : {coord_end}"
+    dup_bed_df = dup_bed_df.loc[ q_dup_bed_df['sample'] == tig_name ] #subset to same contig.
     coords = pd.Interval( coord_start , coord_end )
     bed_intervals = [pd.Interval(x,y, 'both') for x,y in dup_bed_df.loc[:, ["start", "stop"]].values ]
     overlaps =  [coords.overlaps(x) for x in bed_intervals]
@@ -89,7 +90,7 @@ def process_segment(seg ):
     ref_dup_bed_df = get_dup_bed_df( ref_samp,  ref_hap, file_path_sep = "_" )
     ref_dup_bed_df = ref_dup_bed_df.sort_values(by = "start").reset_index(drop= True)
     assert ref_dup_bed_df is not None , f"Couldn't find reference locus bed: {ref_samp} , {ref_hap} in {locus_bed_dir }. Check file_path_sep char."
-    nested_dups = get_dup(ref_dup_bed_df , seg.reference_start, seg.reference_end, is_seg = True)
+    nested_dups = get_dup(ref_dup_bed_df , seg.reference_name ,seg.reference_start, seg.reference_end, is_seg = True)
     if(nested_dups is None):
         return None
     aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'r_score_start', 'r_score_stop' , 'q', 'q_start', 'q_stop', 'q_dup_name', 'q_score_start', 'q_score_stop' ,'score', 'strand' ]) #add coordinates of flank.
@@ -97,12 +98,13 @@ def process_segment(seg ):
         q_samp , q_hap = seg.qname.split("__")[0] , seg.qname.split("__")[1]
         q_dup_bed_df = get_dup_bed_df(q_samp, q_hap, file_path_sep = "_")
         assert q_dup_bed_df is not None , f"Couldn't find query locus bed: {q_samp} , {q_hap} in {locus_bed_dir }. Check file_path_sep char."
-
+        
         q_1 , q_2 = get_q_map(seg, row.start) , get_q_map(seg, row.stop)
+        q_name = seg.qname
         q_start = q_1 if not seg.is_reverse else q_2
         q_end = q_2 if not seg.is_reverse else q_1
-
-        q_dup = get_dup(q_dup_bed_df, q_start , q_end, is_seg = False) ######!!!!!
+        
+        q_dup = get_dup(q_dup_bed_df, q_name, q_start , q_end, is_seg = False) ######!!!!!
         if(q_dup is None):
             continue
         assert len(q_dup) == 1 , f"Issue: getting {q_dup} query duplicon alignments to ref dup: {row} "
