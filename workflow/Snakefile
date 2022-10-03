@@ -128,7 +128,7 @@ rule annotate_coreDup:
       hap_asm_fa = get_hap_fasta,
       locus_fa = get_rgn_fasta 
     output:
-      core_bed = "{r}/coreDup_beds/{sm}_{h}_annotation.bed"
+      core_bed = temp("{r}/coreDup_beds/{sm}_{h}_annotation_temp.bed")
     threads: 8
     params:
       min_aln_len=3342 #3/4ths length CYP2D6...to change
@@ -164,6 +164,21 @@ rule _rename_combine_fastas:
                 os.system(f"cat {output.temp_fa} >> {output.cat_fa}")
             name_change_df = name_change_df.append(cur_name_change_df) #include name change in map file.
         name_change_df.to_csv(output.old_new_name_map, sep='\t' , header = True, index = False) 
+
+rule _rename_coreDup_bed:
+  '''rename coreDup bed contigs to match combined fastas'''
+  input:
+    old_new_name_map = rules._rename_combine_fastas.output.old_new_name_map,
+    core_bed = rules.annotate_coreDup.output.core_bed
+  output:
+    renamed_core_bed = "{r}/coreDup_beds/{sm}_{h}_annotation.bed"
+  run:
+    tig_df = pd.read_csv(input.old_new_name_map, sep = "\t")
+    tig_df = tig_df.set_index( keys = ['original_name'] , drop = False)
+    cur_bed = pd.read_csv(input.core_bed, sep = "\t", names = ['tig', 'start', 'stop', 'name', '.', 'strand'])
+    cur_bed['tig'] = cur_bed['tig'].map(lambda old_name : tig_df.loc[old_name].new_name )
+    cur_bed.to_csv(output.renamed_core_bed , sep = "\t", header = False, index = False)
+
 
 rule get_cluster_annotations:
   '''given mappings table from rule get_targ_query_coreDup_relations, produce cluster annotations using louvain clustering and output tbl with paralog-cluster map.'''
