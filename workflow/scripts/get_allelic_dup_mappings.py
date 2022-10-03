@@ -38,7 +38,7 @@ def get_dup(dup_bed_df , tig_name ,coord_start , coord_end, is_seg = False):
     @input: is_seg: if coord start and end are the boundaries of an alignment segment, then need to adjust dup bed to not go beyond alignment.
     '''
     assert coord_start <= coord_end , f"coordinates wrong: start > end. coord_start: {coord_start} ; coord_end : {coord_end}"
-    dup_bed_df = dup_bed_df.loc[ q_dup_bed_df['sample'] == tig_name ] #subset to same contig.
+    dup_bed_df = dup_bed_df.loc[ dup_bed_df['sample'] == tig_name ] #subset to same contig.
     coords = pd.Interval( coord_start , coord_end )
     bed_intervals = [pd.Interval(x,y, 'both') for x,y in dup_bed_df.loc[:, ["start", "stop"]].values ]
     overlaps =  [coords.overlaps(x) for x in bed_intervals]
