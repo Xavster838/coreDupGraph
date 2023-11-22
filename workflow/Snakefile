@@ -3,6 +3,7 @@ import sys
 import os
 import pandas as pd
 from Bio import SeqIO
+import gzip
 
 #SDIR=os.path.realpath(os.path.dirname(srcdir("env.cfg"))+"/..")
 #shell.prefix(f"source {SDIR}/env.cfg ; set -eo pipefail; ")
@@ -152,16 +153,20 @@ rule _rename_combine_fastas:
         #iterate over each sample row
         for i, row in params.manifest_df.iterrows():
             cur_fasta , cur_samp, cur_hap = row['fasta'], row['sample'], row['hap']
-            with open( cur_fasta ) as original_file: #change names, cat to combined file
-                cur_name_change_df = pd.DataFrame(columns = ['original_fasta', 'original_name', 'new_name'])
-                records = [ i for i in SeqIO.parse(original_file, 'fasta') ] #generate list of fasta sequences
-                for i,seq in enumerate(records):
-                    cur_name_change_df.loc[i] = [cur_fasta, seq.id, f"{cur_samp}__{cur_hap}__{i}"]
-                    seq.id = cur_name_change_df.loc[i, "new_name"]
-                    seq.description = "" #description added to end of header. was old name previously.
-                with open(output.temp_fa, "w") as output_handle:
-                    SeqIO.write(records, output_handle, "fasta")
-                os.system(f"cat {output.temp_fa} >> {output.cat_fa}")
+            if(cur_fasta.endswith(".gz")):
+                original_file = gzip.open(cur_fasta, 'rt')
+            else:
+                original_file = open( cur_fasta , 'r') 
+            cur_name_change_df = pd.DataFrame(columns = ['original_fasta', 'original_name', 'new_name'])
+            records = [ i for i in SeqIO.parse(original_file, 'fasta') ] #generate list of fasta sequences
+            for i,seq in enumerate(records):
+                cur_name_change_df.loc[i] = [cur_fasta, seq.id, f"{cur_samp}__{cur_hap}__{i}"]
+                seq.id = cur_name_change_df.loc[i, "new_name"]
+                seq.description = "" #description added to end of header. was old name previously.
+            with open(output.temp_fa, "w") as output_handle:
+                SeqIO.write(records, output_handle, "fasta")
+            os.system(f"cat {output.temp_fa} >> {output.cat_fa}")
+            original_file.close()
             name_change_df = name_change_df.append(cur_name_change_df) #include name change in map file.
         name_change_df.to_csv(output.old_new_name_map, sep='\t' , header = True, index = False) 
 
