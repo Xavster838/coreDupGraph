@@ -119,7 +119,8 @@ rule get_targ_query_coreDup_relations:
    conda:
        "envs/align.yaml"
    params:
-       locus_bed_dir = "coreDup_beds"
+       locus_bed_dir = "coreDup_beds",
+       manifest = get_manifest_df
    script:
        "scripts/get_allelic_dup_mappings.py"
 
