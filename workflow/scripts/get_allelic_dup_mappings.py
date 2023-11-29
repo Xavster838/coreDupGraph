@@ -7,7 +7,7 @@ import pandas as pd
 import os
 import sys
 #import functions and classes from repo process_cigar
-sys.path.append('/net/eichler/vol26/home/guitarfx/software/github_clones/alignment_operations')
+sys.path.append('/net/eichler/vol28/home/guitarfx/software/github_clones/alignment_operations')
 from cigar_opt_class import CigarOperation
 from cigar_opt_class import cigar_dict
 import process_cigar
