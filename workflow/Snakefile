@@ -120,7 +120,8 @@ rule get_targ_query_coreDup_relations:
        "envs/align.yaml"
    params:
        locus_bed_dir = "coreDup_beds",
-       manifest = get_manifest_df
+       manifest = get_manifest_df,
+       mapping_file_format = "{sm}_{h}_annotation.bed" #filename format from rule rule _rename_coreDup_bed:
    script:
        "scripts/get_allelic_dup_mappings.py"
 
