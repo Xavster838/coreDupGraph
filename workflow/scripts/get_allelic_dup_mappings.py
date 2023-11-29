@@ -21,6 +21,8 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 bam_path =  snakemake.input.bam     #bam file being processed
 locus_bed_dir = snakemake.params.locus_bed_dir   #directory holding all dup_beds for samples in bam.
+manifest = snakemake.params.manifest
+mapping_file_format = snakemake.params.mapping_file_format
 
 bam = pysam.AlignmentFile(bam_path, "r")
 #get references and sort them
