@@ -78,7 +78,7 @@ def get_score(seg, ref_start = None, ref_stop = None):
 
 def get_dup_bed_df(samp, hap , file_path_sep = "_"):
     '''find and return name of locus bed for a sample haplotype. Or return None if not present'''
-    bed_match = [x for x in os.listdir(locus_bed_dir) if f"{samp}{file_path_sep}{hap}" in x]
+    bed_match = [x for x in os.listdir(locus_bed_dir) if x == mapping_file_format.format( sm = samp, h = hap)]
     if bed_match:
         assert len(bed_match) == 1 , f"Didn't find only one bed file to match sample hap. found: {len(bed_match)}"
         bed_df = pd.read_csv( f"{locus_bed_dir}/{bed_match[0]}", sep = "\t", header = None )
