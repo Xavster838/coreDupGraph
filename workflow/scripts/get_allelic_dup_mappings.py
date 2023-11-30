@@ -147,6 +147,8 @@ def try_process_seg(segment):
 def get_aln_stats(alignments):
     '''logic to map try_process_seg across a set of alignments'''
     x = map( try_process_seg , alignments)
+    if(all(v is None for v in x)):
+        return None
     return pd.concat(x , axis = 0)
 
 def open_pysam(filepath_or_object, mode="r"):
