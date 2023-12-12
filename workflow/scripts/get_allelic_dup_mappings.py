@@ -98,7 +98,7 @@ def process_segment(seg ):
         return None
     aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'r_score_start', 'r_score_stop' , 'q', 'q_start', 'q_stop', 'q_dup_name', 'q_score_start', 'q_score_stop' ,'score', 'strand' ]) #add coordinates of flank.
     for i, row in nested_dups.iterrows():
-        q_samp, q_hap = max([x for x in manifest["sample"] if x in seg.reference_name], key = len ) , [x for x in manifest["hap"] if x in seg.reference_name][0] 
+        q_samp, q_hap = max([x for x in manifest["sample"] if x in seg.qname], key = len ) , [x for x in manifest["hap"] if x in seg.qname][0] 
         q_dup_bed_df = get_dup_bed_df(q_samp, q_hap, file_path_sep = "_")
         assert q_dup_bed_df is not None , f"Couldn't find query locus bed: {q_samp} , {q_hap} in {locus_bed_dir }. Check file_path_sep char."
         q_1 , q_2 = get_q_map(seg, row.start) , get_q_map(seg, row.stop)
