@@ -47,8 +47,8 @@ def get_dup(dup_bed_df , tig_name ,coord_start , coord_end, is_seg = False):
     if any(overlaps):
         sub_bed = dup_bed_df.loc[overlaps , :]
         if(is_seg):
-            sub_bed['start'] = sub_bed['start'].map(lambda x: max(x, coord_start ) )
-            sub_bed['stop'] = sub_bed['stop'].map(lambda x: min(x, coord_end ) )
+            sub_bed.loc[:,'start'] = sub_bed['start'].map(lambda x: max(x, coord_start ) )
+            sub_bed.loc[:,'stop'] = sub_bed['stop'].map(lambda x: min(x, coord_end ) )
         return sub_bed
     return None
 
