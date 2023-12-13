@@ -86,9 +86,19 @@ def get_dup_bed_df(samp, hap , file_path_sep = "_"):
         return bed_df
     return None
 
+
+def get_samp_hap( ref_name, name_split = "__"):
+    assert name_split in ref_name , f"cannot process current name: {ref_name} because information not split by current delimiter : {name_split}"
+    samp_haps = list(manifest["sample"] + name_split + manifest["hap"]) #same logic when making names in getting core_dups
+    i = [i for i in range(len(samp_haps)) if samp_haps[i] in ref_name ]
+    assert len(i) == 1, f"finding multiple values of {ref_name} in samp_haps: {[ samp_haps[j] for j in i ]}"
+    i = i[0]
+    return manifest.loc[:,"sample"].iloc[i] , manifest.loc[:,"hap"].iloc[i]
+
+
 def process_segment(seg ):
     '''for each segment, identify reference query coreDup annotations.'''
-    ref_samp, ref_hap = max([x for x in manifest["sample"] if x in seg.reference_name], key = len) , [x for x in manifest["hap"] if x in seg.reference_name][0] #take the longest samp substring to deal with nested valid samples (ex CHM1 and CHM13)
+    ref_samp, ref_hap = get_samp_hap(seg.reference_name) 
     ref_dup_bed_df = get_dup_bed_df( ref_samp,  ref_hap, file_path_sep = "_" )
     ref_dup_bed_df = ref_dup_bed_df.loc[ref_dup_bed_df['sample'] == seg.reference_name]
     ref_dup_bed_df = ref_dup_bed_df.sort_values(by = "start").reset_index(drop= True)
@@ -98,7 +108,7 @@ def process_segment(seg ):
         return None
     aln_stats = pd.DataFrame(columns =  ['ref', 'ref_start', 'ref_stop', 'ref_loc_name', 'r_score_start', 'r_score_stop' , 'q', 'q_start', 'q_stop', 'q_dup_name', 'q_score_start', 'q_score_stop' ,'score', 'strand' ]) #add coordinates of flank.
     for i, row in nested_dups.iterrows():
-        q_samp, q_hap = max([x for x in manifest["sample"] if x in seg.qname], key = len ) , [x for x in manifest["hap"] if x in seg.qname][0] 
+        q_samp, q_hap = get_samp_hap(seg.qname) 
         q_dup_bed_df = get_dup_bed_df(q_samp, q_hap, file_path_sep = "_")
         assert q_dup_bed_df is not None , f"Couldn't find query locus bed: {q_samp} , {q_hap} in {locus_bed_dir }. Check file_path_sep char."
         q_1 , q_2 = get_q_map(seg, row.start) , get_q_map(seg, row.stop)
