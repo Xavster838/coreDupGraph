@@ -138,6 +138,9 @@ def try_process_seg(segment):
             return cur_aln_stats
         # if(cur_aln_stats is not None):
         #     aln_stats = aln_stats.append(cur_aln_stats, ignore_index=True)
+    except AssertionError as e:
+        print(str(e))
+        exit(1)
     except:
         e = sys.exc_info()[0]
         print("ERROR")
